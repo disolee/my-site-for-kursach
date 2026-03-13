@@ -1,0 +1,244 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}SOUL // CART{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cart-header {
+        padding: 80px 40px 40px;
+        text-align: center;
+    }
+    .cart-title {
+        font-size: 3rem;
+        letter-spacing: 8px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+    
+    .cart-table {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        border-collapse: collapse;
+    }
+    .cart-table th {
+        padding: 20px;
+        text-align: left;
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #444;
+        border-bottom: 1px solid #222;
+    }
+    .cart-table td {
+        padding: 20px;
+        border-bottom: 1px solid #111;
+        vertical-align: middle;
+    }
+    
+    .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    .cart-item-symbol {
+        font-size: 2.5rem;
+        color: #333;
+        min-width: 60px;
+        text-align: center;
+    }
+    .cart-item-name {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    .cart-item-price {
+        color: #666;
+    }
+    
+    .quantity-form {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .quantity-input {
+        width: 60px;
+        padding: 8px;
+        background: #000;
+        border: 1px solid #333;
+        color: #e0e0e0;
+        font-family: 'Courier New', monospace;
+        text-align: center;
+    }
+    .quantity-input:focus {
+        outline: none;
+        border-color: #666;
+    }
+    
+    .btn-remove, .btn-update {
+        background: transparent;
+        border: 1px solid #333;
+        color: #555;
+        padding: 6px 12px;
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .btn-remove:hover {
+        border-color: #888;
+        color: #888;
+    }
+    .btn-update:hover {
+        border-color: #666;
+        color: #fff;
+    }
+    
+    .cart-total {
+        text-align: right;
+        padding: 40px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .total-row {
+        display: flex;
+        justify-content: flex-end;
+        gap: 40px;
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+    }
+    .total-label { color: #666; }
+    .total-value { color: #e0e0e0; }
+    
+    .btn-checkout {
+        padding: 15px 50px;
+        background: transparent;
+        border: 1px solid #fff;
+        color: #fff;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        cursor: pointer;
+        transition: 0.3s;
+        font-family: 'Courier New', monospace;
+    }
+    .btn-checkout:hover {
+        background: #fff;
+        color: #000;
+    }
+    .btn-clear {
+        margin-right: 15px;
+        padding: 15px 30px;
+        background: transparent;
+        border: 1px solid #333;
+        color: #555;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .btn-clear:hover {
+        border-color: #666;
+        color: #888;
+    }
+    
+    .empty-cart {
+        text-align: center;
+        padding: 100px 40px;
+        color: #444;
+    }
+    .empty-cart a {
+        color: #666;
+        border-bottom: 1px solid #333;
+        padding-bottom: 2px;
+    }
+    .empty-cart a:hover {
+        color: #999;
+        border-color: #666;
+    }
+    
+    @media (max-width: 768px) {
+        .cart-table { display: block; overflow-x: auto; }
+        .cart-item { flex-direction: column; text-align: center; }
+        .total-row { flex-direction: column; align-items: center; gap: 10px; }
+        .cart-total { text-align: center; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="cart-header">
+    <a href="{% url 'home' %}" class="back-link">← Продолжить покупки</a>
+    <h1 class="cart-title">CART</h1>
+    <p class="category-subtitle">{{ cart|length }} товаров</p>
+</section>
+
+{% if cart|length > 0 %}
+<table class="cart-table">
+    <thead>
+        <tr>
+            <th>Товар</th>
+            <th>Цена</th>
+            <th>Количество</th>
+            <th>Итого</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in cart %}
+        {% with product=item.product %}
+        <tr>
+            <td>
+                <div class="cart-item">
+                    <div class="cart-item-symbol">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:50px; height:50px; object-fit:cover;">
+                        {% else %}
+                            {{ product.symbol|default:"◈" }}
+                        {% endif %}
+                    </div>
+                    <span class="cart-item-name">{{ product.name }}</span>
+                </div>
+            </td>
+            <td class="cart-item-price">{{ product.price }} ₽</td>
+            <td>
+    <form method="post" class="quantity-form">
+        {% csrf_token %}
+        <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ product.quantity }}" class="quantity-input">
+        <button type="submit" name="update_{{ product.id }}" class="btn-update">OK</button>
+    </form>
+</td>
+            <td class="cart-item-price">{{ item.total_price }} ₽</td>
+            <td>
+                <a href="{% url 'cart_remove' product.id %}" class="btn-remove">✕</a>
+            </td>
+        </tr>
+        {% endwith %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="cart-total">
+    <div class="total-row">
+        <span class="total-label">ИТОГО:</span>
+        <span class="total-value">{{ cart.get_total_price }} ₽</span>
+    </div>
+    <div>
+        <form method="post" action="{% url 'cart_clear' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-clear" onclick="return confirm('Очистить корзину?')">Очистить</button>
+        </form>
+        <button class="btn-checkout" onclick="alert('Оформление заказа будет доступно в следующей версии!')">ОФОРМИТЬ ЗАКАЗ</button>
+    </div>
+</div>
+
+{% else %}
+<div class="empty-cart">
+    <p style="font-size: 1.5rem; margin-bottom: 20px;">Твоя корзина пуста</p>
+    <a href="{% url 'home' %}">→ Вернуться в каталог</a>
+</div>
+{% endif %}
+{% endblock %}

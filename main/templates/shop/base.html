@@ -1,0 +1,125 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-color: #050505;
+            --text-color: #e0e0e0;
+            --accent-color: #333;
+            --font-main: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: 0.3s;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--accent-color);
+            position: sticky;
+            top: 0;
+            background: rgba(5, 5, 5, 0.95);
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: -2px;
+            text-transform: uppercase;
+        }
+
+        .logo span {
+            color: #666;
+        }
+
+        nav ul {
+            display: flex;
+            gap: 30px;
+        }
+
+        nav a:hover {
+            color: #666;
+            text-decoration: line-through;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--accent-color);
+            padding: 40px;
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #444;
+        }
+
+        .footer-links a {
+            margin-left: 20px;
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 20px; }
+            nav ul { gap: 15px; }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+    <a href="{% url 'home' %}" class="logo">SOUL<span>//</span>STORE</a>
+    <nav>
+        <ul>
+            <li><a href="{% url 'about' %}">О НАС</a></li>
+            <li>
+                <a href="{% url 'cart_detail' %}" style="position: relative;">
+                    КОРЗИНА
+                    {% if cart|length > 0 %}
+                    <span style="position:absolute; top:-8px; right:-10px; background:#fff; color:#000; font-size:0.65rem; width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                        {{ cart|length }}
+                    </span>
+                    {% endif %}
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+
+
+    {% block content %}{% endblock %}
+
+    <footer>
+        <div class="copyright">© 2025 SOUL STORE. EST. MMXXVI</div>
+        <div class="footer-links">
+            <a href="#">TELEGRAM</a>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

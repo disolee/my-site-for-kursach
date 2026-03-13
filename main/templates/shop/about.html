@@ -1,0 +1,225 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}SOUL // ABOUT{% endblock %}
+
+{% block extra_css %}
+<style>
+    .about-header {
+        padding: 100px 40px 60px;
+        text-align: center;
+    }
+    
+    .about-title {
+        font-size: 4rem;
+        font-weight: bold;
+        letter-spacing: 12px;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        color: #e0e0e0;
+    }
+    
+    .about-subtitle {
+        font-size: 0.8rem;
+        color: #555;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+    }
+    
+    .about-content {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px;
+    }
+    
+    .about-section {
+        margin-bottom: 60px;
+        padding-bottom: 40px;
+        border-bottom: 1px solid #222;
+    }
+    
+    .about-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    .section-heading {
+        font-size: 1.2rem;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+        color: #888;
+    }
+    
+    .about-text {
+        font-size: 0.9rem;
+        line-height: 1.8;
+        color: #999;
+        margin-bottom: 15px;
+    }
+    
+    .about-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-top: 30px;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 20px;
+        border: 1px solid #222;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #e0e0e0;
+        display: block;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        font-size: 0.7rem;
+        color: #555;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    
+    .about-values {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+    
+    .value-item {
+        padding: 20px;
+        border-left: 2px solid #333;
+    }
+    
+    .value-title {
+        font-size: 0.9rem;
+        font-weight: bold;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        color: #ccc;
+    }
+    
+    .value-desc {
+        font-size: 0.85rem;
+        color: #666;
+        line-height: 1.6;
+    }
+    
+    .about-footer {
+        text-align: center;
+        padding: 60px 40px;
+        border-top: 1px solid #222;
+        margin-top: 40px;
+    }
+    
+    .about-footer p {
+        font-size: 0.9rem;
+        color: #555;
+        letter-spacing: 2px;
+    }
+    
+    @media (max-width: 768px) {
+        .about-title { font-size: 2.5rem; letter-spacing: 6px; }
+        .about-stats { grid-template-columns: 1fr; }
+        .about-values { grid-template-columns: 1fr; }
+        .about-content { padding: 20px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="about-header">
+    <h1 class="about-title">ABOUT</h1>
+    <p class="about-subtitle">Кто мы и зачем мы здесь</p>
+</section>
+
+<main class="about-content">
+    
+    <!-- Секция 1: История -->
+    <section class="about-section">
+        <h2 class="section-heading">ИСТОРИЯ</h2>
+        <p class="about-text">
+            SOUL // STORE — это не просто магазин одежды. Это манифест тех, 
+            кто слышит тишину в шуме, кто видит смысл в символах, кто ищет 
+            себя за пределами массового потребления.
+        </p>
+        <p class="about-text">
+            Мы начали с идеи: одежда должна быть продолжением внутреннего мира, 
+            а не маской для общества. Каждая вещь создаётся с мыслью о том, 
+            что она будет носить человек, который не боится быть собой.
+        </p>
+    </section>
+    
+    <!-- Секция 2: Цифры -->
+    <section class="about-section">
+        <h2 class="section-heading">В ЦИФРАХ</h2>
+        <div class="about-stats">
+            <div class="stat-item">
+                <span class="stat-number">2025</span>
+                <span class="stat-label">Основано</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">5</span>
+                <span class="stat-label">Категорий</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">∞</span>
+                <span class="stat-label">Возможностей</span>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Секция 3: Ценности -->
+    <section class="about-section">
+        <h2 class="section-heading">ЦЕННОСТИ</h2>
+        <div class="about-values">
+            <div class="value-item">
+                <h3 class="value-title">АУТЕНТИЧНОСТЬ</h3>
+                <p class="value-desc">
+                    Мы не следуем трендам. Мы создаём вещи, которые остаются 
+                    актуальными вне времени и моды.
+                </p>
+            </div>
+            <div class="value-item">
+                <h3 class="value-title">КАЧЕСТВО</h3>
+                <p class="value-desc">
+                    Каждый шов, каждый материал, каждая деталь — с вниманием 
+                    к тому, кто будет это носить.
+                </p>
+            </div>
+            <div class="value-item">
+                <h3 class="value-title">МИНИМАЛИЗМ</h3>
+                <p class="value-desc">
+                    Ничего лишнего. Только суть. Только то, что действительно 
+                    имеет значение.
+                </p>
+            </div>
+            <div class="value-item">
+                <h3 class="value-title">СВОБОДА</h3>
+                <p class="value-desc">
+                    Одежда не должна ограничивать. Она должна освобождать — 
+                    быть собой, говорить без слов, идти своим путём.
+                </p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Секция 4: Финал -->
+    <section class="about-section">
+        <h2 class="section-heading">ПРИСОЕДИНЯЙСЯ</h2>
+        <p class="about-text">
+            Если ты чувствуешь, что это про тебя — добро пожаловать. 
+            Выбери свой путь. Носи свой знак. Будь собой.
+        </p>
+    </section>
+    
+</main>
+{% endblock %}
