@@ -1,18 +1,19 @@
-from django.shortcuts import render
-from .models import Product, Category
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Product, Category
 from .cart import Cart
 from .forms import CartAddProductForm, CartUpdateForm
+from analytics.signals import EventTracker
 
 
 def home(request):
+    """Главная страница"""
     categories = Category.objects.all()
     return render(request, 'shop/home.html', {'categories': categories})
 
 
 def rings_catalog(request):
+    """Каталог колец"""
     products = Product.objects.filter(category__slug='rings', available=True)
     return render(request, 'shop/rings.html', {  
         'products': products,
@@ -21,6 +22,7 @@ def rings_catalog(request):
 
 
 def tees_catalog(request):
+    """Каталог футболок"""
     products = Product.objects.filter(category__slug='tees', available=True)
     return render(request, 'shop/tees.html', {  
         'products': products,
@@ -29,6 +31,7 @@ def tees_catalog(request):
 
 
 def hoodies_catalog(request):
+    """Каталог худи"""
     products = Product.objects.filter(category__slug='hoodies', available=True)
     return render(request, 'shop/hoodies.html', { 
         'products': products,
@@ -37,6 +40,7 @@ def hoodies_catalog(request):
 
 
 def pendants_catalog(request):
+    """Каталог подвесок"""
     products = Product.objects.filter(category__slug='pendants', available=True)
     return render(request, 'shop/pendants.html', { 
         'products': products,
@@ -45,19 +49,18 @@ def pendants_catalog(request):
 
 
 def outerwear_catalog(request):
+    """Каталог верхней одежды"""
     products = Product.objects.filter(category__slug='outerwear', available=True)
     return render(request, 'shop/outerwear.html', {  
         'products': products,
         'category_name': 'OUTERWEAR'
     })
 
-from django.shortcuts import redirect
 
 def cart_detail(request):
     """Страница корзины"""
     cart = Cart(request)
     
-
     if request.method == 'POST':
         for item in cart:
             update_key = f'update_{item["product"].id}'
@@ -85,10 +88,16 @@ def cart_add(request, product_id):
     form = CartAddProductForm(request.POST)
     if form.is_valid():
         cd = form.cleaned_data
-        cart.add(product=product, quantity=cd['quantity'], update_quantity=cd.get('update', False))
+        quantity = cd['quantity']
+        cart.add(product=product, quantity=quantity, update_quantity=cd.get('update', False))
+        
+        # Трекинг добавления в корзину
+        EventTracker.track(request, 'cart', product=product, quantity=quantity)
+        
         messages.success(request, f'{product.name} добавлен в корзину')
     
     return redirect(request.META.get('HTTP_REFERER', 'home'))
+
 
 def cart_remove(request, product_id):
     """Удалить товар из корзины"""
@@ -98,9 +107,20 @@ def cart_remove(request, product_id):
     messages.info(request, f'{product.name} удалён из корзины')
     return redirect('cart_detail')
 
+
+def cart_clear(request):
+    """Очистить корзину"""
+    cart = Cart(request)
+    cart.clear()
+    messages.success(request, 'Корзина очищена')
+    return redirect('cart_detail')
+
+
 def product_detail(request, slug):
     """Страница отдельного товара"""
     product = get_object_or_404(Product, slug=slug, available=True)
+    
+    EventTracker.track(request, 'view', product=product)
     
     recommended = Product.objects.filter(
         category=product.category, 
@@ -112,13 +132,7 @@ def product_detail(request, slug):
         'recommended': recommended
     })
 
+
 def about(request):
     """Страница 'О нас'"""
     return render(request, 'shop/about.html')
-
-def cart_clear(request):
-    """Очистить корзину"""
-    cart = Cart(request)
-    cart.clear()
-    messages.success(request, 'Корзина очищена')
-    return redirect('cart_detail')

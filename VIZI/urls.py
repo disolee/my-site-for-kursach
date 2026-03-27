@@ -6,6 +6,9 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('main.urls')),
+    path('admin/', admin.site.urls),
+    path('', include('main.urls')),           # URL вашего магазина
+    path('analytics/', include('analytics.urls')),  # URL аналитики
 ]
 
 if settings.DEBUG:

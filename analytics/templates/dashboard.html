@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналитика магазина</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header p { opacity: 0.9; }
+        .controls { margin-top: 20px; display: flex; gap: 15px; }
+        select, button { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        select option { background: #667eea; }
+        button:hover { background: rgba(255,255,255,0.3); }
+        .dashboard { padding: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 25px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .card h3 { color: #667eea; margin-bottom: 20px; font-size: 18px; border-left: 3px solid #667eea; padding-left: 12px; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        .metric { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .metric-value { font-size: 28px; font-weight: bold; color: #667eea; }
+        .metric-label { font-size: 12px; color: #666; margin-top: 5px; }
+        .conversion-bar { background: #e9ecef; border-radius: 10px; overflow: hidden; margin: 15px 0; }
+        .conversion-fill { background: linear-gradient(90deg, #28a745, #20c997); color: white; padding: 8px; text-align: center; font-size: 14px; transition: width 0.3s; }
+        .product-list { max-height: 400px; overflow-y: auto; }
+        .product-item { padding: 12px; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center; }
+        .product-item:hover { background: #f8f9fa; }
+        .product-name { font-weight: 500; }
+        .product-views { font-weight: bold; color: #667eea; }
+        canvas { max-height: 300px; width: 100%; }
+        .loading { text-align: center; padding: 50px; grid-column: 1/-1; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #e9ecef; border-top-color: #667eea; border-radius: 50%; animation: spin 0.6s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) { .dashboard { grid-template-columns: 1fr; padding: 15px; } .metrics-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Аналитика магазина</h1>
+        <p>Мониторинг продаж, конверсии и активности пользователей</p>
+        <div class="controls">
+            <select id="daysSelect">
+                <option value="7">Последние 7 дней</option>
+                <option value="14">Последние 14 дней</option>
+                <option value="30">Последние 30 дней</option>
+                <option value="90">Последние 90 дней</option>
+            </select>
+            <button id="refreshBtn">🔄 Обновить</button>
+        </div>
+    </div>
+    
+    <div id="dashboard" class="dashboard">
+        <div class="loading"><div class="spinner"></div>Загрузка данных...</div>
+    </div>
+    
+    <script>
+        let charts = {};
+        
+        async function loadData(days) {
+            try {
+                const response = await fetch(`/analytics/api/dashboard-stats/?days=${days}`);
+                const data = await response.json();
+                renderDashboard(data, days);
+            } catch (error) {
+                document.getElementById('dashboard').innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;color:red;">❌ Ошибка загрузки данных. Проверьте соединение.</div>';
+            }
+        }
+        
+        function renderDashboard(data, days) {
+            const html = `
+                <div class="card">
+                    <h3>📈 Конверсия за ${days} дней</h3>
+                    <div class="metrics-grid">
+                        <div class="metric"><div class="metric-value">${data.conversion.views.toLocaleString()}</div><div class="metric-label">Просмотры</div></div>
+                        <div class="metric"><div class="metric-value">${data.conversion.carts.toLocaleString()}</div><div class="metric-label">Корзины</div></div>
+                        <div class="metric"><div class="metric-value">${data.conversion.purchases.toLocaleString()}</div><div class="metric-label">Покупки</div></div>
+                        <div class="metric"><div class="metric-value">${data.conversion.unique_users.toLocaleString()}</div><div class="metric-label">Пользователи</div></div>
+                    </div>
+                    <div class="conversion-bar"><div class="conversion-fill" style="width: ${data.conversion.view_to_cart_rate}%">Просмотр → Корзина: ${data.conversion.view_to_cart_rate.toFixed(1)}%</div></div>
+                    <div class="conversion-bar"><div class="conversion-fill" style="width: ${data.conversion.cart_to_purchase_rate}%">Корзина → Покупка: ${data.conversion.cart_to_purchase_rate.toFixed(1)}%</div></div>
+                    <canvas id="conversionChart"></canvas>
+                </div>
+                <div class="card">
+                    <h3>🔥 Топ товаров</h3>
+                    <div class="product-list">
+                        ${data.top_products.map(p => `
+                            <div class="product-item">
+                                <div class="product-name">${p.product_name}</div>
+                                <div class="product-views">${p.views.toLocaleString()} просмотров</div>
+                            </div>
+                        `).join('')}
+                        ${data.top_products.length === 0 ? '<div style="text-align:center;padding:20px;">Нет данных</div>' : ''}
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>💰 Продажи за ${days} дней</h3>
+                    <div class="metrics-grid">
+                        <div class="metric"><div class="metric-value">${data.sales.total_orders?.toLocaleString() || 0}</div><div class="metric-label">Заказов</div></div>
+                        <div class="metric"><div class="metric-value">${(data.sales.total_revenue || 0).toLocaleString()} ₽</div><div class="metric-label">Выручка</div></div>
+                        <div class="metric"><div class="metric-value">${(data.sales.avg_order_value || 0).toLocaleString()} ₽</div><div class="metric-label">Средний чек</div></div>
+                        <div class="metric"><div class="metric-value">${data.sales.unique_customers?.toLocaleString() || 0}</div><div class="metric-label">Покупателей</div></div>
+                    </div>
+                    <canvas id="salesChart"></canvas>
+                </div>
+                <div class="card">
+                    <h3>👥 Активность пользователей</h3>
+                    <div class="metrics-grid">
+                        <div class="metric"><div class="metric-value">${data.user_activity.active_users?.toLocaleString() || 0}</div><div class="metric-label">Активных пользователей</div></div>
+                        <div class="metric"><div class="metric-value">${data.user_activity.total_events?.toLocaleString() || 0}</div><div class="metric-label">Всего событий</div></div>
+                        <div class="metric"><div class="metric-value">${data.user_activity.active_sessions?.toLocaleString() || 0}</div><div class="metric-label">Активных сессий</div></div>
+                        <div class="metric"><div class="metric-value">${data.user_activity.avg_events_per_user?.toFixed(1) || 0}</div><div class="metric-label">Событий на пользователя</div></div>
+                    </div>
+                    <canvas id="activityChart"></canvas>
+                </div>
+            `;
+            
+            document.getElementById('dashboard').innerHTML = html;
+            createConversionChart(data.conversion);
+            createSalesChart(data.sales);
+            createActivityChart(data.user_activity);
+        }
+        
+        function createConversionChart(data) {
+            const ctx = document.getElementById('conversionChart');
+            if (!ctx) return;
+            if (charts.conversion) charts.conversion.destroy();
+            charts.conversion = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.daily_data?.map(d => d.date) || [],
+                    datasets: [
+                        { label: 'Просмотры', data: data.daily_data?.map(d => d.views) || [], borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', tension: 0.4, fill: true },
+                        { label: 'Корзины', data: data.daily_data?.map(d => d.carts) || [], borderColor: '#28a745', backgroundColor: 'rgba(40,167,69,0.1)', tension: 0.4, fill: true },
+                        { label: 'Покупки', data: data.daily_data?.map(d => d.purchases) || [], borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,0.1)', tension: 0.4, fill: true }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+            });
+        }
+        
+        function createSalesChart(data) {
+            const ctx = document.getElementById('salesChart');
+            if (!ctx) return;
+            if (charts.sales) charts.sales.destroy();
+            charts.sales = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.daily_sales?.map(d => d.date) || [],
+                    datasets: [{ label: 'Выручка (₽)', data: data.daily_sales?.map(d => d.revenue) || [], backgroundColor: '#28a745', borderRadius: 8 }]
+                },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+        }
+        
+        function createActivityChart(data) {
+            const ctx = document.getElementById('activityChart');
+            if (!ctx) return;
+            if (charts.activity) charts.activity.destroy();
+            charts.activity = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.hourly_activity?.map(h => `${h.hour}:00`) || [],
+                    datasets: [{ label: 'События по часам', data: data.hourly_activity?.map(h => h.events) || [], backgroundColor: '#764ba2', borderRadius: 8 }]
+                },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const daysSelect = document.getElementById('daysSelect');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const load = () => loadData(daysSelect.value);
+            load();
+            refreshBtn.addEventListener('click', load);
+            daysSelect.addEventListener('change', load);
+            setInterval(load, 30000);
+        });
+    </script>
+</body>
+</html>
