@@ -8,6 +8,7 @@ from .models import ProductAnalytics
 
 @login_required
 def dashboard_view(request):
+    """Страница дашборда"""
     return render(request, 'analytics/dashboard.html', {
         'days_options': [7, 14, 30, 90],
     })
@@ -16,20 +17,25 @@ def dashboard_view(request):
 @login_required
 @require_GET
 def api_dashboard_stats(request):
-    days = int(request.GET.get('days', 7))
-    
-    data = {
-        'conversion': ReportGenerator.get_conversion_report(days),
-        'top_products': ReportGenerator.get_top_products_report(days, 5),
-        'sales': ReportGenerator.get_sales_report(days),
-        'user_activity': ReportGenerator.get_user_activity_report(days),
-    }
-    return JsonResponse(data)
+    """API для получения данных дашборда"""
+    try:
+        days = int(request.GET.get('days', 7))
+        
+        data = {
+            'conversion': ReportGenerator.get_conversion_report(days),
+            'top_products': ReportGenerator.get_top_products_report(days, 5),
+            'sales': ReportGenerator.get_sales_report(days),
+            'user_activity': ReportGenerator.get_user_activity_report(days),
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required
 @require_GET
 def api_product_detail(request, product_id):
+    """API для детальной аналитики товара"""
     try:
         analytics = ProductAnalytics.objects.select_related('product').get(product_id=product_id)
         data = {

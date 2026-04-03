@@ -12,26 +12,45 @@ logger = logging.getLogger(__name__)
 def process_event_async(event_data):
     """Асинхронная обработка события"""
     try:
+        # Получаем created_at
+        created_at = event_data.get('created_at')
+        
+        # Если это строка, конвертируем в datetime
+        if created_at and isinstance(created_at, str):
+            # Простой парсинг без использования dateutil
+            import datetime
+            # Убираем миллисекунды и временную зону
+            created_at = created_at.replace('Z', '+00:00')
+            if '.' in created_at:
+                created_at = created_at.split('.')[0]
+            # Парсим строку
+            created_at = datetime.datetime.fromisoformat(created_at)
+            # Добавляем часовой пояс
+            created_at = timezone.make_aware(created_at)
+        elif not created_at:
+            created_at = timezone.now()
+        
         with transaction.atomic():
             event = Event.objects.create(
                 event_type=event_data.get('event_type'),
                 session_key=event_data.get('session_key'),
                 user_id=event_data.get('user_id'),
-                user_agent=event_data.get('user_agent'),
+                user_agent=event_data.get('user_agent', '')[:500],
                 ip_address=event_data.get('ip_address'),
-                referer=event_data.get('referer'),
-                path=event_data.get('path'),
+                referer=event_data.get('referer', '')[:500],
+                path=event_data.get('path', '')[:500],
                 product_id=event_data.get('product_id'),
                 product_name=event_data.get('product_name'),
                 category=event_data.get('category'),
                 price=event_data.get('price'),
                 quantity=event_data.get('quantity', 1),
                 search_query=event_data.get('search_query'),
-                created_at=event_data.get('created_at'),
+                created_at=created_at,
             )
         
+        # Обновляем аналитику товара
         if event_data.get('product_id'):
-            analytics, created = ProductAnalytics.objects.get_or_create(
+            analytics, _ = ProductAnalytics.objects.get_or_create(
                 product_id=event_data['product_id']
             )
             
@@ -42,13 +61,14 @@ def process_event_async(event_data):
                 analytics.cart_adds_count += event_data.get('quantity', 1)
             elif event_data['event_type'] == 'purchase':
                 quantity = event_data.get('quantity', 1)
-                price = float(event_data.get('price', 0))
+                price = float(event_data.get('price', 0) or 0)
                 analytics.purchases_count += quantity
                 analytics.total_revenue += price * quantity
                 analytics.last_purchased_at = timezone.now()
             
             analytics.save()
         
+        # Обновляем агрегаты
         update_aggregates.delay()
         
         return f"Event {event.event_id} processed"
