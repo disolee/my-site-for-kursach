@@ -1,0 +1,8 @@
+{% extends 'shop/base.html' %}
+{% block content %}
+<div style="max-width:600px; margin:0 auto; padding:120px 40px; text-align:center;">
+    <h1 style="font-size:2rem; letter-spacing:6px; margin-bottom:20px;">ЗАКАЗ #{{ order.id }} ПРИНЯТ</h1>
+    <p style="color:#888;">Подтверждение отправлено на {{ order.email }}</p>
+    <a href="{% url 'home' %}" style="display:inline-block; margin-top:30px; color:#666; border-bottom:1px solid #333;">← Вернуться в каталог</a>
+</div>
+{% endblock %}

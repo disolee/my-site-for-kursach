@@ -79,7 +79,6 @@ def cart_detail(request):
     
     return render(request, 'shop/cart.html', {'cart': cart})
 
-
 def cart_add(request, product_id):
     """Добавить товар в корзину"""
     cart = Cart(request)
@@ -90,12 +89,8 @@ def cart_add(request, product_id):
         cd = form.cleaned_data
         quantity = cd['quantity']
         cart.add(product=product, quantity=quantity, update_quantity=cd.get('update', False))
-        
-        # Трекинг добавления в корзину
         EventTracker.track(request, 'cart', product=product, quantity=quantity)
-        
         messages.success(request, f'{product.name} добавлен в корзину')
-    
     return redirect(request.META.get('HTTP_REFERER', 'home'))
 
 
@@ -115,9 +110,51 @@ def cart_clear(request):
     messages.success(request, 'Корзина очищена')
     return redirect('cart_detail')
 
+from django.db import transaction
+from .models import Product, Category, Order, OrderItem
+from .forms import CartAddProductForm, CartUpdateForm, CheckoutForm
+
+def checkout(request):
+    cart = Cart(request)
+    if len(cart) == 0:
+        messages.error(request, 'Корзина пуста')
+        return redirect('cart_detail')
+
+    if request.method == 'POST':
+        form = CheckoutForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            with transaction.atomic():
+                order = Order.objects.create(
+                    user=request.user if request.user.is_authenticated else None,
+                    total_amount=cart.get_total_price(),
+                    **cd
+                )
+                for item in cart:
+                    if item['quantity'] > item['product'].quantity:
+                        messages.error(request, f"Недостаточно {item['product'].name} на складе")
+                        return redirect('cart_detail')
+                    OrderItem.objects.create(
+                        order=order,
+                        product=item['product'],
+                        quantity=item['quantity'],
+                        price=item['price'],
+                    )
+                    item['product'].decrease_quantity(item['quantity'])
+                    EventTracker.track(request, 'purchase', product=item['product'], quantity=item['quantity'])
+                cart.clear()
+            return redirect('order_success', order_id=order.id)
+    else:
+        form = CheckoutForm()
+
+    return render(request, 'shop/checkout.html', {'cart': cart, 'form': form})
+
+
+def order_success(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    return render(request, 'shop/order_success.html', {'order': order})
 
 def product_detail(request, slug):
-    """Страница отдельного товара"""
     product = get_object_or_404(Product, slug=slug, available=True)
     
     EventTracker.track(request, 'view', product=product)
@@ -132,6 +169,8 @@ def product_detail(request, slug):
         'recommended': recommended
     })
 
+def ai_assistant(request):
+    return render(request, 'shop/ai_assistant.html')
 
 def about(request):
     """Страница 'О нас'"""

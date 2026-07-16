@@ -1,0 +1,115 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}AI Помощник - {% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 40px 20px;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 10px;">🤖 AI Помощник</h1>
+    <p style="color: #666; margin-bottom: 30px;">Задайте любой вопрос о товарах, доставке или работе магазина</p>
+    
+    <div style="background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden;">
+        <div style="background: #000; color: #fff; padding: 20px; display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 28px;">💬</span>
+            <div>
+                <h3 style="margin: 0; font-size: 18px;">Чат с AI-ассистентом</h3>
+                <p style="margin: 5px 0 0; opacity: 0.8; font-size: 12px;">Работает на локальной Llama 3.2</p>
+            </div>
+        </div>
+        
+        <div id="chatMessages" style="height: 400px; overflow-y: auto; padding: 20px; background: #f8f9fa; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: flex-start;">
+                <div style="background: #e9ecef; padding: 12px 16px; border-radius: 18px; max-width: 80%;">
+                    Привет! Я AI-помощник. Спрашивай о товарах, доставке, возврате — помогу чем смогу!
+                </div>
+            </div>
+        </div>
+        
+        <div style="display: flex; padding: 20px; background: white; border-top: 1px solid #dee2e6; gap: 12px;">
+            <input type="text" id="chatInput" placeholder="Напишите ваш вопрос..." style="flex: 1; padding: 12px 16px; border: 1px solid #dee2e6; border-radius: 30px; outline: none; font-size: 14px;">
+            <button id="sendBtn" style="background: #000; color: white; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: 500;">Отправить</button>
+        </div>
+    </div>
+    
+    <div style="margin-top: 40px; background: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+        <h3 style="margin-bottom: 15px;">📝 Оставить отзыв</h3>
+        <textarea id="feedbackText" rows="3" style="width: 100%; padding: 12px; border: 1px solid #dee2e6; border-radius: 12px; resize: vertical;" placeholder="Поделитесь впечатлениями..."></textarea>
+        <button id="feedbackBtn" style="margin-top: 15px; background: #28a745; color: white; border: none; padding: 10px 24px; border-radius: 30px; cursor: pointer;">Отправить отзыв</button>
+        <div id="feedbackResult" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 12px; font-style: italic;"></div>
+    </div>
+</div>
+
+<script>
+    const messagesContainer = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    
+    function addMessage(text, isUser) {
+        const messageDiv = document.createElement('div');
+        messageDiv.style.display = 'flex';
+        messageDiv.style.justifyContent = isUser ? 'flex-end' : 'flex-start';
+        const bubble = document.createElement('div');
+        bubble.textContent = text;
+        bubble.style.background = isUser ? '#000' : '#e9ecef';
+        bubble.style.color = isUser ? 'white' : '#333';
+        bubble.style.padding = '12px 16px';
+        bubble.style.borderRadius = '18px';
+        bubble.style.maxWidth = '80%';
+        messageDiv.appendChild(bubble);
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    async function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+        addMessage(message, true);
+        chatInput.value = '';
+        const typingDiv = document.createElement('div');
+        typingDiv.style.display = 'flex';
+        typingDiv.style.justifyContent = 'flex-start';
+        typingDiv.innerHTML = '<div style="background: #e9ecef; padding: 12px 16px; border-radius: 18px; font-style: italic;">Печатает...</div>';
+        messagesContainer.appendChild(typingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        try {
+            const response = await fetch('/ai/api/chat/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: message})
+            });
+            const data = await response.json();
+            typingDiv.remove();
+            addMessage(data.response, false);
+        } catch (error) {
+            typingDiv.innerHTML = '<div style="background: #e9ecef; padding: 12px 16px; border-radius: 18px; font-style: italic; color: red;">Ошибка соединения</div>';
+            setTimeout(() => typingDiv.remove(), 2000);
+        }
+    }
+    
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    
+    const feedbackText = document.getElementById('feedbackText');
+    const feedbackBtn = document.getElementById('feedbackBtn');
+    const feedbackResult = document.getElementById('feedbackResult');
+    
+    feedbackBtn.addEventListener('click', async () => {
+        const text = feedbackText.value.trim();
+        if (!text) { feedbackResult.innerHTML = '⚠️ Введите текст отзыва'; return; }
+        feedbackResult.innerHTML = '🔄 Анализируем...';
+        try {
+            const response = await fetch('/ai/api/feedback/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text: text})
+            });
+            const data = await response.json();
+            const emoji = data.sentiment === 'positive' ? '😊' : (data.sentiment === 'negative' ? '😟' : '😐');
+            feedbackResult.innerHTML = `${emoji} ${data.message}`;
+            feedbackText.value = '';
+        } catch (error) {
+            feedbackResult.innerHTML = '❌ Ошибка при отправке';
+        }
+    });
+</script>
+{% endblock %}

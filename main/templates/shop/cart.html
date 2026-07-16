@@ -231,8 +231,7 @@
             {% csrf_token %}
             <button type="submit" class="btn-clear" onclick="return confirm('Очистить корзину?')">Очистить</button>
         </form>
-        <button class="btn-checkout" onclick="alert('Оформление заказа будет доступно в следующей версии!')">ОФОРМИТЬ ЗАКАЗ</button>
-    </div>
+<a href="{% url 'checkout' %}" class="btn-checkout" style="display:inline-block; text-align:center; text-decoration:none;">ОФОРМИТЬ ЗАКАЗ</a>    </div>
 </div>
 
 {% else %}

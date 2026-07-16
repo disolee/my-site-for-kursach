@@ -90,7 +90,13 @@ class ReportGenerator:
         }
     
     @staticmethod
-    def get_user_activity_report(days=7):
+    def get_conversion_report(days=7):
+        since = timezone.now() - timedelta(days=days)
+        views = Event.objects.filter(event_type='view', created_at__gte=since).count()
+        carts = Event.objects.filter(event_type='cart', created_at__gte=since).count()
+        purchases = Event.objects.filter(event_type='purchase', created_at__gte=since).count()
+        unique_users = Event.objects.filter(created_at__gte=since).values('user_id').distinct().count()
+        unique_sessions = Event.objects.filter(created_at__gte=since).values('session_key').distinct().count()
         """Отчет по активности пользователей"""
         return {
             'active_users': Event.objects.values('user_id').distinct().count(),
